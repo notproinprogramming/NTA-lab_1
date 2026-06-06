@@ -5,6 +5,16 @@
 
 #include "algorithms.hpp"
 
+// Виводить вектор множників у вигляді n = p1 * p2 * ...
+void print_factors(uint64_t n, const vector<uint64_t>& factors) {
+  cout << n << " = ";
+  for (int i = 0; i < (int)factors.size(); i++) {
+    if (i) cout << " * ";
+    cout << factors[i];
+  }
+  cout << "\n";
+}
+
 struct TestCase {
   uint32_t n;
   bool expected_prime;
@@ -69,6 +79,41 @@ int main() {
   run_timing(7919u, K);    // просте, мале
   run_timing(999983u, K);  // просте ~10^6
   run_timing(999984u, K);  // складене
+
+  // --- РО-метод Полларда ---
+
+  cout << "=== РО-метод Полларда ===\n";
+
+  vector<uint64_t> pollard_tests = {
+      15,           // 3 * 5
+      8051,         // 83 * 97
+      1234567,      // 127 * 9721
+      15770708441,  // 115979 * 135979
+  };
+
+  for (uint64_t n : pollard_tests) {
+    uint64_t d = pollard_rho(n);
+    cout << n << " -> " << d << " * " << n / d << "\n";
+  }
+
+  // --- Метод Брілхарта-Моррісона ---
+
+  cout << "\n=== Метод Брілхарта-Моррісона ===\n";
+
+  vector<uint64_t> bm_tests = {
+      15,           // 3 * 5
+      8051,         // 83 * 97
+      1234567,      // 127 * 9721
+      15770708441,  // 115979 * 135979
+  };
+
+  for (uint64_t n : bm_tests) {
+    uint64_t d = brillhart_morrison(n);
+    if (d > 1 && d < n)
+      cout << n << " -> " << d << " * " << n / d << "\n";
+    else
+      cout << n << " -> не знайдено\n";
+  }
 
   return 0;
 }
