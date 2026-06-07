@@ -41,12 +41,19 @@ static void run_canonical(uint64_t n) {
     if (i) cout << " * ";
     cout << factors[i].p;
   }
-  cout << "\ntotal: " << fixed << setprecision(2) << total_ms << " us\n";
+  cout << "\ntotal: " << fixed << setprecision(2) << total_ms << " ms\n";
 }
 
 // =========== бенчмарк для Ро-методу Полларда та БМ =================
 
-static void run_benchmark(const vector<uint64_t>& numbers) {
+static void run_benchmark() {
+  vector<uint64_t> numbers = {
+      3009182572376191ULL, 1021514194991569ULL, 4000852962116741ULL, 15196946347083ULL, 499664789704823ULL,
+      269322119833303ULL,  679321846483919ULL,  96267366284849ULL,   61333127792637ULL, 2485021628404193ULL,
+  };
+
+  cout << "\n=== Ро-метод Полларда проти методу Брілхарта-Морісона ===\n\n";
+
   cout << left << setw(22) << "n" << setw(18) << "Pollard div" << setw(14) << "Pollard ms" << setw(18) << "B-M div" << setw(14) << "B-M ms"
        << "faster\n"
        << string(96, '-') << "\n";
@@ -67,18 +74,29 @@ static void run_benchmark(const vector<uint64_t>& numbers) {
   }
 }
 
-int main() {
-  cout << "=== канонічний розклад ===";
-  run_canonical(323324583518541583ULL);
+static void print_usage(const char* argv0) {
+  cerr << "usage:\n"
+       << "  " << argv0 << " 1 0          - запустити бенчмарк тест\n"
+       << "  " << argv0 << " 2 <number>   - факторизувати <number>\n";
+}
 
-  vector<uint64_t> bench_numbers = {
-      3009182572376191ULL, 1021514194991569ULL, 4000852962116741ULL, 15196946347083ULL, 499664789704823ULL,
-      269322119833303ULL,  679321846483919ULL,  96267366284849ULL,   61333127792637ULL, 2485021628404193ULL,
-  };
+int main(int argc, char* argv[]) {
+  if (argc != 3) {
+    print_usage(argv[0]);
+    return 1;
+  }
 
-  cout << "\n=== Ро-метод Полларда проти методу Брілхарта-Морісона ===\n\n";
+  int mode = atoi(argv[1]);
 
-  run_benchmark(bench_numbers);
+  if (mode == 1) {
+    run_benchmark();
+  } else if (mode == 2) {
+    uint64_t n = stoull(argv[2]);
+    run_canonical(n);
+  } else {
+    print_usage(argv[0]);
+    return 1;
+  }
 
   return 0;
 }

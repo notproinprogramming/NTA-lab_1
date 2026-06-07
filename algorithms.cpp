@@ -15,6 +15,51 @@ static double now_us() { return chrono::duration<double, chrono::microseconds::p
 random_device rd;  // створення рандомного числа-генератора
 mt19937 gen(rd());
 
+// =========== Міллер-Рабін 64 біт =================
+
+static uint64_t mulmod64(uint64_t a, uint64_t b, uint64_t m) { return ((__uint128_t)a * b) % m; }
+
+static uint64_t powmod64(uint64_t base, uint64_t exp, uint64_t m) {
+  uint64_t result = 1;
+  base %= m;
+  while (exp > 0) {
+    if (exp & 1) result = mulmod64(result, base, m);
+    base = mulmod64(base, base, m);
+    exp >>= 1;
+  }
+  return result;
+}
+
+static bool miller_rabin_witness(uint64_t n, uint64_t a, uint64_t d, uint64_t s) {
+  uint64_t x = powmod64(a, d, n);
+  if (x == 1 || x == n - 1) return true;
+  for (uint64_t r = 1; r < s; r++) {
+    x = mulmod64(x, x, n);
+    if (x == n - 1) return true;
+  }
+  return false;
+}
+
+// повертає 1, якщо p складене, 0 якщо просте
+int Miller_Rabin_64(uint64_t n) {
+  if (n < 2) return 1;
+  if (n == 2 || n == 3 || n == 5 || n == 7) return 0;
+  if (n % 2 == 0) return 1;
+
+  uint64_t d = n - 1;
+  uint64_t s = 0;
+  while (d % 2 == 0) {
+    d /= 2;
+    s++;
+  }
+
+  for (uint64_t a : {2ULL, 3ULL, 5ULL, 7ULL, 11ULL, 13ULL, 17ULL, 19ULL, 23ULL, 29ULL, 31ULL, 37ULL}) {
+    if (a >= n) continue;
+    if (!miller_rabin_witness(n, a, d, s)) return 1;
+  }
+  return 0;
+}
+
 // =========== для Міллера-Рабіна =================
 
 uint gcd(uint a, uint b) {
@@ -460,11 +505,9 @@ bool canonical_factorize(uint64_t n, vector<FactorEntry>& out, double start_us) 
   if (n == 1) return true;
 
   // (a) тест на простоту
-  if (n <= UINT32_MAX) {
-    if (Miller_Rabin((uint32_t)n, 10) == 0) {
-      out.push_back({n, "Miller-Rabin", now_us() - start_us});
-      return true;
-    }
+  if (Miller_Rabin_64(n) == 0) {
+    out.push_back({n, "Miller-Rabin", now_us() - start_us});
+    return true;
   }
 
   // (б) пробних ділень
@@ -485,11 +528,9 @@ bool canonical_factorize(uint64_t n, vector<FactorEntry>& out, double start_us) 
   }
 
   // (г) перевіряє чи видав Поллард просте число
-  if (n <= UINT32_MAX) {
-    if (Miller_Rabin((uint32_t)n, 10) == 0) {
-      out.push_back({n, "Miller-Rabin", now_us() - start_us});
-      return true;
-    }
+  if (Miller_Rabin_64(n) == 0) {
+    out.push_back({n, "Miller-Rabin", now_us() - start_us});
+    return true;
   }
 
   // (д) Брілхарт-Морісон

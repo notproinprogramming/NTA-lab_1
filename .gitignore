@@ -69,3 +69,4 @@ Testing/
 
 # Project binary (built from Makefile, not tracked)
 prog
+*.tar
