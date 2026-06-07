@@ -2,118 +2,83 @@
 #include <cstdint>
 #include <iomanip>
 #include <iostream>
+#include <vector>
 
 #include "algorithms.hpp"
 
-// Виводить вектор множників у вигляді n = p1 * p2 * ...
-void print_factors(uint64_t n, const vector<uint64_t>& factors) {
-  cout << n << " = ";
+using namespace std;
+
+// =========== канонічний розклад =================
+
+static void run_canonical(uint64_t n) {
+  using Clock = chrono::high_resolution_clock;
+  using ms = chrono::duration<double, chrono::microseconds::period>;
+
+  double start_ms = ms(Clock::now().time_since_epoch()).count();
+
+  vector<FactorEntry> factors;
+  bool ok = canonical_factorize(n, factors, start_ms);
+
+  double total_ms = ms(Clock::now().time_since_epoch()).count() - start_ms;
+
+  cout << "\n--- canonical_factorize(" << n << ") ---\n";
+
+  if (!ok) {
+    cout << "я не можу знайти канонiчний розклад числа :(\n";
+    return;
+  }
+
+  cout << left << setw(20) << "factor" << setw(22) << "method"
+       << "found at (ms)\n"
+       << string(56, '-') << "\n";
+
+  for (auto& f : factors) {
+    cout << setw(20) << f.p << setw(22) << f.method << fixed << setprecision(2) << f.found_at_ms << "\n";
+  }
+
+  cout << "\n" << n << " = ";
   for (int i = 0; i < (int)factors.size(); i++) {
     if (i) cout << " * ";
-    cout << factors[i];
+    cout << factors[i].p;
   }
-  cout << "\n";
+  cout << "\ntotal: " << fixed << setprecision(2) << total_ms << " us\n";
 }
 
-struct TestCase {
-  uint32_t n;
-  bool expected_prime;
-};
+// =========== бенчмарк для Ро-методу Полларда та БМ =================
 
-static const TestCase CASES[] = {
-    // прості
-    {3u, true},
-    {5u, true},
-    {7u, true},
-    {11u, true},
-    {97u, true},
-    {997u, true},
-    {7919u, true},
-    // складені
-    {4u, false},
-    {9u, false},
-    {15u, false},
-    {25u, false},
-    {561u, false},
-    {1729u, false},  // числа Кармайкла
-};
+static void run_benchmark(const vector<uint64_t>& numbers) {
+  cout << left << setw(22) << "n" << setw(18) << "Pollard div" << setw(14) << "Pollard ms" << setw(18) << "B-M div" << setw(14) << "B-M ms"
+       << "faster\n"
+       << string(96, '-') << "\n";
 
-void run_correctness_check(uint32_t k) {
-  std::cout << "=== Перевірка коректності (k=" << k << ") ===\n\n";
-  bool all_ok = true;
+  for (uint64_t n : numbers) {
+    BenchResult r = benchmark_factorizers(n);
 
-  for (auto& tc : CASES) {
-    int result = Miller_Rabin(tc.n, k);
-    bool is_prime = (result == 0);
-    bool ok = (is_prime == tc.expected_prime);
+    const char* faster = "tie";
+    if (r.time_pollard_ms < r.time_bm_ms * 0.95)
+      faster = "Pollard";
+    else if (r.time_bm_ms < r.time_pollard_ms * 0.95)
+      faster = "B-M";
 
-    std::cout << "  n=" << std::setw(6) << tc.n << "  очікується: " << (tc.expected_prime ? "ПРОСТЕ   " : "СКЛАДЕНЕ ")
-              << "  отримано: " << (is_prime ? "ПРОСТЕ   " : "СКЛАДЕНЕ ") << (ok ? "" : "  <-- ПОМИЛКА") << "\n";
-
-    if (!ok) all_ok = false;
+    cout << left << setw(22) << r.n << setw(18) << (r.divisor_pollard > 1 && r.divisor_pollard < n ? to_string(r.divisor_pollard) : "fail")
+         << setw(14) << fixed << setprecision(1) << r.time_pollard_ms << setw(18)
+         << (r.divisor_bm > 1 && r.divisor_bm < n ? to_string(r.divisor_bm) : "fail") << setw(14) << fixed << setprecision(1) << r.time_bm_ms
+         << faster << "\n";
   }
-
-  std::cout << "\nПідсумок: " << (all_ok ? "всі тести пройшли успішно" : "Є ПОМИЛКИ") << "\n";
-}
-
-void run_timing(uint32_t p, uint32_t k) {
-  std::cout << "\n--- Замір часу: n=" << p << ", k=" << k << " ---\n";
-
-  auto t_start = std::chrono::high_resolution_clock::now();
-
-  int result = Miller_Rabin(p, k);
-
-  auto t_end = std::chrono::high_resolution_clock::now();
-  double us = std::chrono::duration<double, std::micro>(t_end - t_start).count();
-
-  std::cout << "Результат: " << (result == 0 ? "ПРОСТЕ" : "СКЛАДЕНЕ") << "\n";
-  std::cout << "Час:       " << std::fixed << std::setprecision(3) << us << " мкс\n";
 }
 
 int main() {
-  const uint32_t K = 10;
+  cout << "=== канонічний розклад ===";
+  run_canonical(323324583518541583ULL);
 
-  run_correctness_check(K);
-
-  std::cout << "\n=== Заміри часу ===\n";
-  run_timing(7919u, K);    // просте, мале
-  run_timing(999983u, K);  // просте ~10^6
-  run_timing(999984u, K);  // складене
-
-  // --- РО-метод Полларда ---
-
-  cout << "=== РО-метод Полларда ===\n";
-
-  vector<uint64_t> pollard_tests = {
-      15,           // 3 * 5
-      8051,         // 83 * 97
-      1234567,      // 127 * 9721
-      15770708441,  // 115979 * 135979
+  vector<uint64_t> bench_numbers = {
+      3009182572376191ULL, 1021514194991569ULL, 4000852962116741ULL, 15196946347083ULL, 499664789704823ULL,
+      269322119833303ULL,  679321846483919ULL,  96267366284849ULL,   61333127792637ULL, 2485021628404193ULL,
   };
 
-  for (uint64_t n : pollard_tests) {
-    uint64_t d = pollard_rho(n);
-    cout << n << " -> " << d << " * " << n / d << "\n";
-  }
+  cout << "\n=== Ро-метод Полларда проти методу Брілхарта-Морісона ===\n\n";
 
-  // --- Метод Брілхарта-Моррісона ---
-
-  cout << "\n=== Метод Брілхарта-Моррісона ===\n";
-
-  vector<uint64_t> bm_tests = {
-      15,           // 3 * 5
-      8051,         // 83 * 97
-      1234567,      // 127 * 9721
-      15770708441,  // 115979 * 135979
-  };
-
-  for (uint64_t n : bm_tests) {
-    uint64_t d = brillhart_morrison(n);
-    if (d > 1 && d < n)
-      cout << n << " -> " << d << " * " << n / d << "\n";
-    else
-      cout << n << " -> не знайдено\n";
-  }
+  run_benchmark(bench_numbers);
 
   return 0;
 }

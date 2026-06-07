@@ -23,3 +23,23 @@ uint64_t pollard_rho(uint64_t n);
 int legendre(uint64_t a, uint64_t p);
 vector<vector<int>> gauss_gf2(vector<vector<int>> A, int rows, int cols);
 uint64_t brillhart_morrison(uint64_t n);
+
+// === для канонічного розкладу ===
+struct FactorEntry {
+  uint64_t p;
+  const char* method;
+  double found_at_ms;
+};
+
+bool canonical_factorize(uint64_t n, vector<FactorEntry>& out, double start_us);
+
+// === для бенчмарку ===
+struct BenchResult {
+  uint64_t n;
+  uint64_t divisor_pollard;
+  double time_pollard_ms;
+  uint64_t divisor_bm;
+  double time_bm_ms;
+};
+
+BenchResult benchmark_factorizers(uint64_t n);
