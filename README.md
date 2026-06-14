@@ -17,12 +17,12 @@ $ docker pull notproinprogramming/nta-factorize
 
 Для запуску розкладу виконайте:
 
-$ docker run --rm nta-factorize <номер_методу> <ваше_число>
+$ docker run --rm notproinprogramming/nta-factorize <номер_методу> <ваше_число>
 
 
 Приклад команди:
 
-$ docker run --rm nta-factorize 2 323324583518541583
+$ docker run --rm notproinprogramming/nta-factorize 2 323324583518541583
 
 ## 3. Інформування користувача
 Якщо запустити контейнер без передачі числа, утиліта автоматично виведе довідку-інструкцію щодо правильного використання, прапор `--rm` гарантує автоматичне видалення тимчасового контейнера після виведення результату
